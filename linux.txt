@@ -1,0 +1,881 @@
+https://github.com/LinkedDestiny/swoole-doc/blob/master/01-环境搭建及扩展安装.md
+虚拟机：1F04Z-6D111-7Z029-AV0Q4-3AEH8
+172.16.153.1
+
+1：查看环境：
+
+[root@10-4-14-168 html]# cat /etc/redhat-release
+CentOS release 6.5 (Final)
+2：关掉防火墙
+
+
+[root@10-4-14-168 html]# chkconfig iptables off
+3：配置CentOS 6.0 第三方yum源（CentOS默认的标准源里没有nginx软件包）
+
+#wget http://www.atomicorp.com/installers/atomic
+
+#sh ./atomic
+
+#yum check-update
+4：安装开发包和库文件　
+
+#yum -y install ntp make openssl openssl-devel pcre pcre-devel libpng libpng-devel libjpeg-6b libjpeg-devel-6b freetype freetype-devel gd gd-devel zlib zlib-devel gcc gcc-c++ libXpm libXpm-devel ncurses ncurses-devel libmcrypt libmcrypt-devel libxml2 libxml2-devel imake autoconf automake screen sysstat compat-libstdc++-33 curl curl-devel
+5：卸载已安装的apache、mysql、php
+
+# yum remove httpd
+# yum remove mysql
+# yum remove php
+6：安装nginx
+
+# yum install nginx
+# service nginx start
+# chkconfig --levels 235 nginx on
+//设2、3、5级别开机启动
+7：安装mysql
+
+# yum install mysql mysql-server mysql-devel
+# service mysqld start
+# chkconfig --levels 235 mysqld on
+
+登陆MySQL删除空用户，修改root密码
+mysql>select user,host,password from mysql.user;
+
+mysql>drop user ''@localhost;
+
+mysql>update mysql.user set password = PASSWORD('123456') where user='root';
+
+mysql>flush privileges;
+　　
+
+8：安装php
+
+# yum install php lighttpd-fastcgi php-cli php-mysql php-gd php-imap php-ldap php-odbc php-pear php-xml php-xmlrpc php-mbstring php-mcrypt php-mssql php-snmp php-soap
+//安装php和所需组件使PHP支持MySQL、FastCGI模式
+
+#yum install  php-tidy php-common php-devel php-fpm php-mysql
+
+# service php-fpm start
+# chkconfig --levels 235 php-fpm on
+9：配置nginx支持php
+
+# mv /etc/nginx/nginx.conf /etc/nginx/nginx.confbak
+//将配置文件改为备份文件
+
+# cp /etc/nginx/nginx.conf.default /etc/nginx/nginx.conf
+//由于原配置文件要自己去写因此可以使用默认的配置文件作为配置文件
+
+//修改nginx配置文件，添加fastcgi支持
+# vi /etc/nginx/nginx.conf
+index index.php index.html index.htm;
+//加入index.php
+
+location ~ \.php$ {
+            root           /usr/share/nginx/html/;
+            fastcgi_pass   127.0.0.1:9000;
+            fastcgi_index  index.php;
+            fastcgi_param  SCRIPT_FILENAME  /usr/share/nginx/html$fastcgi_script_name;
+            include        fastcgi_params;
+        }
+//将以上代码注释去掉，并修改成nginx默认路径
+　　
+
+ 
+
+10：配置php
+
+
+//编辑文件php.ini，在文件末尾添加cgi.fix_pathinfo = 1
+[root@CentOS ~]# vi /etc/php.ini
+11：重启nginx php-fpm
+
+# service nginx restart
+# service php-fpm restart
+　　
+
+12：建立info.php文件
+
+
+# vi /usr/share/nginx/html/info.php
+<?php
+   phpinfo();
+?>
+　　
+
+13：测试nginx是否解析php
+
+
+本地浏览器输入：192.168.1.105/info.php
+显示php界面  环境搭建成功
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+listen       80;
+    root /var/www/huizhuangv2_root/trunk/www/foreman_observe;
+    index nginx_fpm.php;
+
+    server_name  gz2.rls.huizhuang.com;
+
+
+    #charset koi8-r;
+
+    #access_log  logs/host.access.log  main;
+
+    #URL重写设置
+    location / {
+        root /var/www/huizhuangv2_root/trunk/www/foreman_observe;
+        index index.html index.htm index.php;
+        if (!-e $request_filename){
+               rewrite (.*)\.do$ /nginx_fpm.php last;
+        }
+    }
+
+    error_page  404              /404.html;
+    location = /404.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+
+        include /etc/nginx/include-conf.d/hznew.conf;
+
+
+//自动挂载
+    说明  你的文件要先在win 共享 。在cmd中输入你的ip 如//192.168.11.169 看是否有你共享的文件 ,  /usr/share/nginx/html/ 这个是你linux 下的根目录
+    mount -t cifs  //192.168.5.7/huizhuang_v2 /home/wwwroot/huizhuang/ -o username=wangzd,password='wangzd123!',rw,dir_mode=0777,file_mode=0777
+    mount -t cifs  //192.168.11.169/www /usr/share/nginx/html/ -o username=Administrator,password='208789',rw,dir_mode=0777,file_mode=0777
+
+
+// 卸载 umount  /usr/share/nginx/html/www
+
+//win远程连接数据库 navicat  进入数据库 use mysql
+
+    GRANT ALL PRIVILEGES ON *.* TO '添加用户名或原始'@'%' IDENTIFIED BY '密码' WITH GRANT OPTION; 
+记得开启3306 端口vi /etc/sysconfig/iptables 
+/etc/init.d/iptables restart 
+
+// 安装sublime
+    一、建立软件安装目录（我一般把软件安装在opt目录下）
+
+            # mkdir /opt
+            # cd /opt
+
+    二、下载软件
+
+            http://www.sublimetext.com/3
+            注意一定要下Ubuntu/tarball包。
+            也可以用命令下载
+
+            wget http://c758482.r82.cf2.rackcdn.com/sublime_text_3_build_3083_x64.tar.bz2   //注意 这个包名 貌似没有了，我 建议在centos桌面里去下载并剪接到opt文件下，注意 的包名字
+
+            如果链接地址失效，请到官网获取最新下载地址。
+    三、解压软件包
+
+             tar jxvf sublime_text_3_build_3059_x64.tar.bz2  
+
+    四、命令行下直接运行
+
+            # cd /opt/sublime_text_3
+            # ./sublime_text
+
+    五、创建桌面快捷方式
+
+    复制文件
+
+        # cp /opt/sublime_text_3/sublime_text.desktop /usr/share/applications
+
+    更改配置文件
+
+     
+         # vim /usr/share/applications/sublime_text.desktop
+
+    我的配置如下
+        [Desktop Entry]
+        Version=1.0
+        Type=Application
+        Name=Sublime Text
+        GenericName=Text Editor
+        Comment=Sophisticated text editor for code, markup and prose
+        Exec=/opt/sublime_text_3/sublime_text %F
+        Terminal=false
+        MimeType=text/plain;
+        Icon=/opt/sublime_text_3/Icon/48x48/sublime-text.png
+        Categories=TextEditor;Development;
+        StartupNotify=true
+        Actions=Window;Document;
+
+        [Desktop Action Window]
+        Name=New Window
+        Exec=/opt/sublime_text_3/sublime_text -n
+        OnlyShowIn=Unity;
+
+        [Desktop Action Document]
+        Name=New File
+        Exec=/opt/sublime_text/sublime_text_3 --command new_file
+        OnlyShowIn=Unity;
+
+    六、打开软件
+
+    应用程序 >编程 > Sublime Text”右键”将此启动器添加到桌面”
+
+
+
+
+//安装git 
+        git在linux的安装：（以下涉及到的软件基本都使用yum安装，如果你的机子不联网，建议你先建本地yum源：http://www.cnblogs.com/shenliang123/p/3829044.html）
+
+        1.先从官网 http://git-scm.com/download 上下载git-1.7.3.tar.gz
+        或者  wget  https://www.kernel.org/pub/software/scm/git/  选择你要下载的包名    //注意  我们自己解压的路劲和下面的有出入
+
+        2.将文件git-1.7.3.tar.gz复制到/opt/git/gitinstall下，并解压
+
+        [root@sl gitinstall]# tar -zxvf git-1.7.3.tar.gz
+
+        3.进行配置安装
+
+        [root@sl gitinstall]# cd git-1.7.3
+        [root@sl git-1.7.3]# ./configure
+        [root@sl git-1.7.3]# make
+        [root@sl git-1.7.3]# make install
+
+         
+
+        ----------------------------------------------------------------------------------------------------
+
+        但在执行make操作时报错：缺少gcc，yum安装gcc
+
+        [root@sl ~]# yum -y install gcc
+
+        重新执行make操作，还报错，缺少zlib.h。我们可以查看是否存在zlib.h
+
+        [root@sl ~]# whereis zlib
+
+        如果存在则会输出zlib路径。不存在则输出空白，以下是安装详情：
+
+        1.从http://www.zlib.net/下载zlib最新版：zlib-1.2.8.tar.gz
+
+        2.解压，编译
+
+        [root@sl gitinstall]# tar -zxvf zlib-1.2.8.tar.gz
+        [root@sl gitinstall]# cd zlib-1.2.8
+        [root@sl zlib-1.2.8]# ./configure
+        [root@sl zlib-1.2.8]# make
+        [root@sl zlib-1.2.8]# make install
+
+        --------------------------------------------------------------------------------------------------------------------------------------------
+
+         
+
+        重新执行make,make install，无错误输出，验证安装是否成功：
+
+        [root@sl git-1.7.3]# whereis git
+        git:/usr/local/bin/git
+        [root@sl git-1.7.3]# git -version
+        git version 1.7.3
+
+//关于 如果你不配置好ip ,远程连接当你关机或者重启时你的ip要变， linux 永久修改IP  
+
+
+               
+
+           |
+        修改IP永久生效按以下方法
+        vi /etc/sysconfig/network-scripts/ifcfg-eth0（eth0，第一块网卡，如果是第二块则为eth1）
+        按如下修改ip
+        DEVICE=eth0（如果是第二块刚为eth1）
+        BOOTPROTO=static
+        IPADDR=192.168.0.11(改成要设置的IP)
+        NETMASK=255.255.255.0 (子网掩码)
+        GATEWAY=192.168.0.1(网关)
+        ONBOO=yes
+        然后
+        service network restart
+        IP地址生效，重启系统后不变
+
+
+//关于禅道的安装   
+
+
+    1.wget http://sourceforge.net/projects/zentao/files/8.0.1/ZenTaoPMS.8.0.1.zip/download
+    2. cp ./ZenTaoPMS.8.0.1.zip /usr/share/nginx/html
+
+    3.通过浏览器访问http://ip/zentaopms/www/index.php，系统会自动转入安装程序。
+    4. 详情请你看 http://www.zentao.net/book/zentaopmshelp/101.html
+
+
+// 运行yum报错Error: Cannot retrieve metalink for repository: epel. Please verify its path and try again
+
+        vim /etc/yum.repos.d/epel.repo
+    把
+        #baseurl
+        mirrorlist
+
+        改成
+
+        baseurl
+        #mirrorlist 
+
+
+//安装gitlab环境一键安装包其他的不用去安装了 来源http://blog.chinaunix.net/uid-20771867-id-4814515.html还有自己的思路清参考
+    1.注意 要干净的没有装过环境的centos
+    2.个人遇到的问题 去执行这一步时候很慢在centos 里面 （https://downloads-packages.s3.amazonaws.com/centos-6.6/gitlab-7.7.2_omnibus.5.4.2.ci-1.el6.x86_64.rpm）所以我是在win里面下载好，用的winps传入进去的，我传入的位子是在~下就是root文件下 。这个看个人你放的哪个位子，
+    3.# yum install openssh-server
+    4.# yum install postfix
+    5.# yum install cronie
+    6.# service postfix start
+    7.# chkconfig postfix on
+    注   我用的第2不 下面的89点就不需要了，如果执行了9点 ，报错说你已经安装了
+    8.# curl -O https://downloads-packages.s3.amazonaws.com/centos-6.6/gitlab-7.7.2_omnibus.5.4.2.ci-1.el6.x86_64.rpm
+    9.# sudo rpm -i gitlab-7.7.2_omnibus.5.4.2.ci-1.el6.x86_64.rpm
+    10.# gitlab-ctl reconfigure
+    11.# lokkit -s http -s ssh
+    12.# gitlab-ctl status 出现
+     如，安装完后运行sudo gitlab-ctl status命令来查看一些关键进行的运行情况，正常的话应该如下所示：
+    run: nginx: (pid 972) 7s; run: log: (pid 971) 7s 
+
+    run: postgresql: (pid 962) 7s; run: log: (pid 959) 7s 
+
+    run: redis: (pid 964) 7s; run: log: (pid 963) 7s 
+
+    run: sidekiq: (pid 967) 7s; run: log: (pid 966) 7s 
+
+    run: unicorn: (pid 961) 7s; run: log: (pid 960) 7s
+    如果没有问题gitlab就安装好了，但一般是会有问题的，进入https://gitlab.com/gitlab-org/omnibus-gitlab/blob/master/README.md里面会列举一些常见的问题及解决方式。
+
+当你安装好了后，你在外网输入你的服务器的ip,就会自动跳转http://192.168.204.132/users/sign_in
+ 输入你的密码 ，切记我们第一次登陆的时候不要去注册，注册了也没用，因为你不能激活你的账号，说起来也很无力，一键包安装好了就是没找他他的mysql ，开能今天刚好安好，还不熟悉。百度一大堆，用一键包默认用户名root  密码5iveL!fe 登陆
+  登陆进去就叫你 修改密码 ，后面的操作及就留个各位慢慢摸索了。添加新用户，记得解锁就是激活的意思，还要给他添加密码哈。
+  后续来写git上传代码问题了。今天晚上测试了哈，不能上传，问题好很多
+
+@1  关于我们新建项目  的ssh 和 http的路劲问题   
+     列入  ssh git@gitlab.example.com:zhong/new.git
+           http http://gitlab.example.com/zhong/new.git   换成ip 路径   此只针对我们的一键安装包
+        cd  /var/opt/gitlab/gitlab-rails/etc/  vim gitlab.yml 把
+        gitlab:
+                host:gitlab.example.com 
+                改成host：192.168.204.132 保存退出。个人建议在桌面里面去改
+        gitlab重启 在终端 输入 
+                gitlab-ctl stop
+                gitlab-ctl restar
+        查看是否启动了
+                gitlab-ctl status
+终于可以上传了 果然是  路劲的问题   必须改成我们的服务器ip   
+ 还有在win或者centos 下 在个人中心 把SSH keys 添加上去 前提你已经安装好了git  请生成.ssh 文件 
+ 位子 在C:\Users\yeyu79520\.ssh 里面  打开id_rsa.pub    把内容复制到My SSH keys (1)去。
+ sshkey  生成  用$ ssh-keygen -t rsa -C "xxxxxx@yy.com"  #建议填写自己真实有效的邮箱地址 按3次回车
+ 来源http://jingyan.baidu.com/article/a65957f4e91ccf24e77f9b11.html
+
+
+
+
+
+
+ //安装  php 5.6   
+第一步   #  yum update
+
+第二步   # rpm -Uvh http://ftp.iij.ad.jp/pub/linux/fedora/epel/6/x86_64/epel-release-6-8.noarch.rpm
+          # rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
+
+
+第三步  #  yum search php5
+
+
+结果  如下
+        php56-php-pecl-dom-varimport-devel.x86_64 : php56-php-pecl-dom-varimport developer files (header)
+        php56-php-pecl-judy-devel.x86_64 : php56-php-pecl-judy developer files (header)
+        php56-php-pecl-pcsc-devel.x86_64 : php56-php-pecl-pcsc developer files (header)
+        php56-php-pecl-propro-devel.x86_64 : php56-php-pecl-propro developer files (header)
+        php56-php-pecl-raphf-devel.x86_64 : php56-php-pecl-raphf developer files (header)
+        php56-php-pecl-xmldiff-devel.x86_64 : php56-php-pecl-xmldiff developer files (header)
+        php56-runtime.x86_64 : Package that handles php56 Software Collection.
+        php56-scldevel.x86_64 : Package shipping development files for php56
+        php56.x86_64 : Package that installs PHP 5.6
+        php56-build.x86_64 : Package shipping basic build configuration
+        php56-mysqlnd-qc-panel.noarch : Mysqlnd Query Cache Monitor
+        php56-php.x86_64 : PHP scripting language for creating dynamic web sites
+        php56-php-bcmath.x86_64 : A module for PHP applications for using the bcmath library
+        php56-php-channel-horde.noarch : Adds pear.horde.org channel to PEAR
+
+
+第四步   # yum install --enablerepo=remi --enablerepo=remi-php56 php php-opcache php-devel php-mbstring php-mcrypt php-mysqlnd php-phpunit-PHPUnit php-pecl-xdebug php-pecl-xhprof
+
+
+
+第五步查看php  版本  # php -v  
+
+
+第六步 安装apache 或者安装nginx    # yum install httpd
+ 
+第七步  # yum install mysql mysql-server
+    在命令行直接输入 mysql 登陆MySQL删除空用户，修改root密码，退出数据库
+    mysql>select user,host,password from mysql.user;
+    mysql>drop user ''@localhost;
+    mysql>update mysql.user set password = PASSWORD('123456') where user='root';
+    mysql>flush privileges;
+    mysql>quit;
+
+    如果需要在windows下用Navicat连接Centos中的mysql，需要设置mysql用户的访问权限
+
+    首先进入mysql服务器，然后输入命令
+    mysql>GRANT   ALL   PRIVILEGES   ON   *.*   TO   'root'@'%'   WITH   GRANT   OPTION;
+    mysql>FLUSH   PRIVILEGES;
+    mysql>quit;
+
+
+第八步  # cd /var/www/html
+        # vi info.php
+
+        # curl 127.0.0.1/info.php
+
+
+        mysql跟Apache服务可通过以下命令查看:
+
+        查看服务状态
+        # service mysqld status
+        # service httpd status
+
+        关闭 开启 重启 服务
+        # service httpd stop
+        # service httpd start
+        # service httpd restart
+
+
+
+
+/**************************************  linux   安装  composer *****************************************/
+
+
+
+首先我吐槽  按照  中国镜像 http://docs.phpcomposer.com/00-intro.html#Installation-*nix   地址   
+  表示  根本就行不通   ，镜像源不在国内  根本用不起 curl -sS https://getcomposer.org/installer | php     这个也需要运气毕竟是国外的网站无法访问
+
+  用的笨方法   在网上找的  composer.phar  还有composer.json 放在www根目录下 切记 不用root用户 安装 php composer.phar install 命令
+
+
+  
+
+/**************************************** 安转编辑器phpstorm******************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+第一步   /******   http://blog.csdn.net/fenglailea/article/details/44875123  ****/ 来源
+
+yum list | grep openj     查看 jsdk  
+第二步
+
+yum install java-1.7.0-openjdk  
+第三步
+下载 http://www.jetbrains.com/phpstorm/download/index.html
+第四步
+ 进入到下载的目录 解压  
+ tar zxvf PhpStorm-2016.2.2.tar.gz 
+第五步
+进入phpstorm 解压缩 后目录，命令启动
+sudo ./bin/phpstorm.sh  
+
+Startup Error: Unable to detect graphics environment
+报错   什么鬼
+
+
+
+
+
+
+
+
+
+/******************* 安装mysql5.6 遇到的问题*************************/
+
+ 1. 查看系统里面有没有mysql 的repo
+
+# yum repolist all | grep mysql
+
+
+
+
+ 2. 如果没有发现，则需要配置repo
+
+   注意，如果要使用5.7 或者其他任何版本，只能有一个是 enabled=1的，其他的都得enabled=0。
+
+#vim /etc/yum.repos.d/mysql-community.repo
+# Enable to use MySQL 5.6
+[mysql56-community]
+name=MySQL 5.6 Community Server
+baseurl=http://repo.mysql.com/yum/mysql-5.6-community/el/6/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=
+
+3. 再看看是否存在mysql的repo
+
+# yum repolist enabled | grep mysql
+mysql56-community     MySQL 5.6 Community Server                             214
+
+
+4. 注意，
+
+   可能想当然的以为是
+
+# yum install mysql56
+//你只会得到
+No package mysql56 available
+
+  实际上官方的安装命令是 
+
+ # yum install mysql-community-server
+ //但是，失败了呢
+ mysql-community-server-5.6.28-2.el6.x86_64.rpm     |  53 MB     00:10     
+ 
+warning: rpmts_HdrFromFdno: Header V3 DSA/SHA1 Signature, key ID 5072e1f5: NOKEY
+Retrieving key from file:///etc/pki/rpm-gpg/RPM-GPG-KEY-mysql
+获取 GPG 密钥失败：[Errno 14] Could not open/read file:///etc/pki/rpm-gpg/RPM-GPG-KEY-mysql
+
+
+
+
+# vim /etc/pki/rpm-gpg/RPM-GPG-KEY-mysql 
+
+写入如下内容
+
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v1.4.9 (SunOS)
+
+mQGiBD4+owwRBAC14GIfUfCyEDSIePvEW3SAFUdJBtoQHH/nJKZyQT7h9bPlUWC3
+RODjQReyCITRrdwyrKUGku2FmeVGwn2u2WmDMNABLnpprWPkBdCk96+OmSLN9brZ
+fw2vOUgCmYv2hW0hyDHuvYlQA/BThQoADgj8AW6/0Lo7V1W9/8VuHP0gQwCgvzV3
+BqOxRznNCRCRxAuAuVztHRcEAJooQK1+iSiunZMYD1WufeXfshc57S/+yeJkegNW
+hxwR9pRWVArNYJdDRT+rf2RUe3vpquKNQU/hnEIUHJRQqYHo8gTxvxXNQc7fJYLV
+K2HtkrPbP72vwsEKMYhhr0eKCbtLGfls9krjJ6sBgACyP/Vb7hiPwxh6rDZ7ITnE
+kYpXBACmWpP8NJTkamEnPCia2ZoOHODANwpUkP43I7jsDmgtobZX9qnrAXw+uNDI
+QJEXM6FSbi0LLtZciNlYsafwAPEOMDKpMqAK6IyisNtPvaLd8lH0bPAnWqcyefep
+rv0sxxqUEMcM3o7wwgfN83POkDasDbs3pjwPhxvhz6//62zQJ7Q2TXlTUUwgUmVs
+ZWFzZSBFbmdpbmVlcmluZyA8bXlzcWwtYnVpbGRAb3NzLm9yYWNsZS5jb20+iGkE
+ExECACkCGyMGCwkIBwMCBBUCCAMEFgIDAQIeAQIXgAIZAQUCUwHUZgUJGmbLywAK
+CRCMcY07UHLh9V+DAKCjS1gGwgVI/eut+5L+l2v3ybl+ZgCcD7ZoA341HtoroV3U
+6xRD09fUgeq0O015U1FMIFBhY2thZ2Ugc2lnbmluZyBrZXkgKHd3dy5teXNxbC5j
+b20pIDxidWlsZEBteXNxbC5jb20+iG8EMBECAC8FAk53Pa0oHSBidWlsZEBteXNx
+bC5jb20gd2lsbCBzdG9wIHdvcmtpbmcgc29vbgAKCRCMcY07UHLh9bU9AJ9xDK0o
+xJFL9vTl9OSZC4lX0K9AzwCcCrS9cnJyz79eaRjL0s2r/CcljdyIZQQTEQIAHQUC
+R6yUtAUJDTBYqAULBwoDBAMVAwIDFgIBAheAABIJEIxxjTtQcuH1B2VHUEcAAQGu
+kgCffz4GUEjzXkOi71VcwgCxASTgbe0An34LPr1j9fCbrXWXO14msIADfb5piEwE
+ExECAAwFAj4+o9EFgwlmALsACgkQSVDhKrJykfIk4QCfWbEeKN+3TRspe+5xKj+k
+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
+AcOphrnJ
+=443I
+-----END PGP PUBLIC KEY BLOCK-----
+
+
+
+# yum install mysql-community-server
+  报错  报错  报错  报错  报错  报错
+Is this ok [y/N]: y
+Downloading Packages:
+warning: rpmts_HdrFromFdno: Header V3 DSA/SHA1 Signature, key ID 5072e1f5: NOKEY
+
+
+Public key for mysql-community-common-5.6.34-2.el6.x86_64.rpm is not installed
+ 
+
+ 解决方法   
+vim /etc/yum.repos.d/mysql-community.repo  
+
+添加 这句话
+ gpgkey=file:/etc/pki/rpm-gpg/RPM-GPG-KEY-mysql
+
+ 在安装 
+
+
+
+
+
+
+
+
+
+
+第一步  
+    wget http://dev.mysql.com/get/mysql-community-release-el6-5.noarch.rpm
+
+第二步
+    sudo yum localinstallmysql-community-release-el6-*.noarch.rpm  
+第三部
+    sudo yum install mysql-community-server
+
+    来源 http://blog.csdn.net/horace20/article/details/26516689
+
+
+ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/var/lib/mysql/mysql.sock
+ 登录mysql出现/var/lib/mysql/mysql.sock不存在
+
+问题描述：
+1.mysql安装完成后，使用
+service mysqld start
+总是出现 start failed。
+2.使用mysql -uroot -p登录出现找不到 /var/lib/mysql/mysql.sock问题。
+3.使用service mysqld status出现 mysql dead but subsys locked(暂时还没有出现这个问题)
+
+
+解决方法：
+4.1 service mysqld stop (停止服务)
+4.2 rm -fr /var/lib/mysql/* (删除/var/lib/mysql下的所有文件)
+4.3 rm /var/lock/subsys/mysqld(删除锁定文件)
+4.4 killall mysqld (杀死所有mysqld进程)
+4.5 service mysql start (启动mysql服务。)
+
+
+
+
+
+/***************************************redis 安装*********************************/
+
+                /*******************  本地连接 *************************/
+
+
+来源：http://www.cnblogs.com/silent2012/p/3499654.html
+
+
+1.  下载源码，解压缩后编译源码。
+    wget http://download.redis.io/releases/redis-2.8.3.tar.gz
+    tar xzf redis-2.8.3.tar.gz
+    cd redis-2.8.3
+    make 
+
+
+
+
+
+2.  编译完成后，在Src目录下，有四个可执行文件redis-server、redis-benchmark、redis-cli和redis.conf。然后拷贝到一个目录下。
+    mkdir /usr/redis
+    cp redis-server  /usr/redis
+    cp redis-benchmark /usr/redis
+    cp redis-cli  /usr/redis
+    cp redis.conf  /usr/redis
+    cd /usr/redis 
+
+
+3.  启动Redis服务。
+
+    redis-server   redis.conf
+
+
+4.然后用客户端测试一下是否启动成功。
+
+   redis-cli
+
+   redis> set foo bar
+   OK
+   redis> get foo
+   "bar"
+
+
+
+4. php 安装 redis 扩张包
+
+来源http://www.centoscn.com/image-text/config/2014/0306/2504.html
+
+    yum install php-devel 
+
+    wget https://github.com/nicolasff/phpredis/archive/master.zip  
+    yum install unzip
+    unzip master.zip 
+
+
+    #1.准备phpize编译环境  
+
+    [root@localhost phpredis-master]# phpize  
+
+    Configuring for:  
+
+    PHP Api Version:         20090626  
+
+    Zend Module Api No:      20090626  
+
+    Zend Extension Api No:   220090626 
+
+        #2.配置环境  
+
+    ./configure  
+
+
+
+    #3.编译  
+
+    make && make install  
+        #编译完成  
+
+    Build complete.  
+
+    Don't forget to run 'make test'.  
+
+    Installing shared extensions:     /usr/lib64/php/modules/  
+    进入/usr/lib64/php/modules 文件夹，发现redis.so的扩展。
+
+
+    修改php.ini
+    vi /etc/php.ini  
+    添加下面的扩展
+    extension=redis.so  
+    service httpd restart  
+
+
+    自己开启phpinfo(); 查看是否有redis
+
+
+
+    /******************************虚拟机自身连接不起  **********************************/
+    来源http://www.cnblogs.com/mracale/p/5801667.html
+    在CentOS下配置Apache+php+redis+phpredis环境。
+    编辑访问redis缓存的php程序test.php，以应用程序方式在后台运行，可成功访问Redis，而在Apache下以网页形式访问时则出错，在 访问Redis以及之后的代码均不再执行。查看Apache的日志：/var/log/httpd/error_log，发现代码运行时出现异常：
+    PHP Fatal error: Uncaught exception ‘RedisException’ with message ‘Redis server went away’ in /var/www/html/test.php
+
+    在网上查该异常时均认为是php的Sokcet超时时间设置的过短，应该在代码前加上：ini_set(‘default_socket_timeout’, -1);
+    经测试仍无法解决该问题，因在代码后台运行正常，因此判断并非代码本身问题，而是Apache不允许访问网络资源，尝试如下解决方法：
+    打开/etc/selinux/config，找到其中的：
+    SELINUX=enforcing
+    改为：SELINUX=disabled
+
+    问题解决！
+
+    如果仍不能解决问题,可执行如下指令:
+    /usr/sbin/setsebool httpd_can_network_connect=1
+
+  /******************************本地连接redis连接不起  **********************************/
+
+Fatal error: Uncaught exception 'RedisException' with message 'protocol error, got 'n' as reply type byte ' in D:
+
+
+修改redis.conf  配置  
+
+    来源http://www.th7.cn/db/nosql/201608/201681.shtml
+
+    1)打开配置文件把下面对应的注释掉
+
+    # bind 127.0.0.1 
+
+    2)Redis默认不是以守护进程的方式运行，可以通过该配置项修改，使用yes启用守护进程，设置为no
+
+    daemonize no
+
+    3)保护模式
+
+    protected-mode no 
+
+
